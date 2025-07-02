@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Connect Four vs Computer</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body {
+      margin: 0; padding: 20px;
+      background: linear-gradient(to right, #232526, #414345);
+      color: #fff;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh;
+    }
+    h1 { margin-bottom: 10px; color: #f9d342; }
+    #status { margin-bottom: 15px; font-size: 1.2rem; }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(7, 60px);
+      grid-template-rows: repeat(6, 60px);
+      gap: 5px;
+      background: #1e3c72;
+      padding: 10px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    }
+    .cell {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: #ccc;
+      transition: background 0.3s;
+    }
+    .red { background: #e74c3c !important; }
+    .yellow { background: #f1c40f !important; }
+    .win { box-shadow: 0 0 12px 4px white; }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none; border-radius: 8px;
+      background: #f9d342; color: #222;
+      cursor: pointer;
+    }
+    button:hover { background: #ffe066; }
+
+    @media(max-width: 500px) {
+      #board {
+        grid-template-columns: repeat(7, 40px);
+        grid-template-rows: repeat(6, 40px);
+        gap: 4px;
+      }
+      .cell {
+        width: 40px; height: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Connect Four vs Computer</h1>
+  <div id="status">Your turn (🔴)</div>
+  <div id="board"></div>
+  <button onclick="resetGame()">🔁 Restart Game</button>
+
+  <script>
+    const rows = 6, cols = 7;
+    let board = [];
+    let gameOver = false;
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+
+    function createBoard() {
+      board = Array.from({ length: rows }, () => Array(cols).fill(null));
+      boardEl.innerHTML = '';
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.addEventListener('click', () => playerMove(c));
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    function playerMove(col) {
+      if (gameOver) return;
+      if (!dropDisc(col, 'red')) return;
+      if (checkGameOver('red')) return;
+      statusEl.textContent = "Computer's turn (🟡)";
+      setTimeout(computerMove, 500); // short delay
+    }
+
+    function computerMove() {
+      if (gameOver) return;
+      let validCols = [];
+      for (let c = 0; c < cols; c++) {
+        if (board[0][c] === null) validCols.push(c);
+      }
+      const randomCol = validCols[Math.floor(Math.random() * validCols.length)];
+      dropDisc(randomCol, 'yellow');
+      checkGameOver('yellow');
+      if (!gameOver) statusEl.textContent = "Your turn (🔴)";
+    }
+
+    function dropDisc(col, player) {
+      for (let row = rows - 1; row >= 0; row--) {
+        if (!board[row][col]) {
+          board[row][col] = player;
+          const index = row * cols + col;
+          boardEl.children[index].classList.add(player);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function checkGameOver(player) {
+      const result = checkWin(player);
+      if (result) {
+        result.forEach(([r, c]) => {
+          const index = r * cols + c;
+          boardEl.children[index].classList.add('win');
+        });
+        statusEl.textContent = (player === 'red' ? "🎉 You win!" : "😐 Computer wins!");
+        gameOver = true;
+        return true;
+      } else if (board.flat().every(cell => cell)) {
+        statusEl.textContent = "🤝 It's a draw!";
+        gameOver = true;
+        return true;
+      }
+      return false;
+    }
+
+    function checkWin(player) {
+      const directions = [
+        [[0,1],[0,-1]],
+        [[1,0],[-1,0]],
+        [[1,1],[-1,-1]],
+        [[1,-1],[-1,1]]
+      ];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (board[r][c] !== player) continue;
+          for (let [dir1, dir2] of directions) {
+            let combo = [[r, c]];
+            for (let [dr, dc] of [dir1, dir2]) {
+              let rr = r + dr, cc = c + dc;
+              while (rr >= 0 && rr < rows && cc >= 0 && cc < cols && board[rr][cc] === player) {
+                combo.push([rr, cc]);
+                rr += dr; cc += dc;
+              }
+            }
+            if (combo.length >= 4) return combo;
+          }
+        }
+      }
+      return null;
+    }
+
+    function resetGame() {
+      gameOver = false;
+      statusEl.textContent = "Your turn (🔴)";
+      createBoard();
+    }
+
+    createBoard();
+  </script>
+</body>
+</html>
